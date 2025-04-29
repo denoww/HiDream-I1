@@ -17,7 +17,8 @@ set -e
 
 # --- Login Hugging Face ---
 echo "\n🔐 Logando no Hugging Face..."
-echo $HF_TOKEN | huggingface-cli login --token
+huggingface-cli login --token "$HF_TOKEN"
+
 
 # --- Clonar repositório ---
 echo "\n📁 Clonando HiDream..."
