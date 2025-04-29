@@ -19,6 +19,7 @@ app = FastAPI()
 # Carrega o pipeline apenas uma vez no startup
 pipe = None
 serveo_url = None
+porta = 7860
 
 @app.on_event("startup")
 async def on_startup():
@@ -163,7 +164,7 @@ def image_to_image(opt):
 # Rodar o servidor manualmente:
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=True)
 
 
 
