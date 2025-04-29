@@ -91,7 +91,7 @@ def parse_resolution(resolution_str):
 @app.get("/")
 def index():
     return JSONResponse({
-        "App": "HiDream API ligado",
+        "App": "HiDream API ligado!",
         "status": "ok",
         "public_url": serveo_url or "Aguardando criação do túnel..."
     })
