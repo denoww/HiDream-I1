@@ -19,6 +19,8 @@ pipe = None
 serveo_url = None
 porta = 7860
 
+app = FastAPI()
+
 @app.on_event("startup")
 async def on_startup():
     global pipe
