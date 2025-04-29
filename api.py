@@ -25,6 +25,10 @@ pipe = None
 serveo_url = None
 porta = 7860
 
+pipe = None
+current_model = None
+
+
 from fastapi.staticfiles import StaticFiles
 app = FastAPI()
 
@@ -50,15 +54,11 @@ def on_shutdown():
 
 @app.on_event("startup")
 async def on_startup():
-    global pipe
-    # pipe = load_hidream_pipeline()
-    pipes = {
-        "fast": load_hidream_pipeline("fast"),
-        "full": load_hidream_pipeline("full")
-    }
-
+    global pipe, current_model
+    print("🚀 Carregando modelo padrão (full)...")
+    pipe = load_hidream_pipeline("full")  # Só full no começo
+    current_model = "full"
     set_ip_publico(porta)
-
 
 
 def set_ip_publico(porta):
@@ -192,16 +192,16 @@ async def pegar_parametros(request: Request, file: Optional[UploadFile]):
 # Função auxiliar para gerar imagem
 async def gerar_imagem(opt):
     global pipe, current_model
-    model = opt.get("model", "fast")
+    model = opt.get("model", "fast")  # default ainda é fast se nada vier
 
     if model != current_model:
         if pipe:
             del pipe
             torch.cuda.empty_cache()
-        print(f"Loading model: {model}")
+        print(f"🔄 Trocando modelo para: {model}")
         pipe = load_hidream_pipeline(model)
         current_model = model
-        print(f"✅ Model {model} loaded!")
+        print(f"✅ Modelo {model} carregado!")
 
     if opt["acao"] == "text_to_image":
         image = text_to_image(opt)
@@ -212,6 +212,7 @@ async def gerar_imagem(opt):
     else:
         raise ValueError("Ação inválida")
     return image, opt
+
 
 
 
@@ -267,6 +268,7 @@ def text_to_image(opt):
 
     opt["seed"] = seed
     return image
+
 
 def image_to_image(opt):
     init_image = Image.open(io.BytesIO(opt["file"])).convert("RGB")
