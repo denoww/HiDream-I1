@@ -189,8 +189,8 @@ def set_ip_publico(porta):
 
     threading.Thread(target=run_ssh, daemon=True).start()
 
-if not DEBUG_MODE:
-    carregar_modelos()
+# if not DEBUG_MODE:
+#     carregar_modelos()
 
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
