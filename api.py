@@ -189,8 +189,8 @@ def set_ip_publico(porta):
 
     threading.Thread(target=run_ssh, daemon=True).start()
 
-# if not DEBUG_MODE:
-#     carregar_modelos()
+if not DEBUG_MODE:
+    carregar_modelos()
 
 porta = 7860
 if __name__ == "__main__":
