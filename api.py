@@ -76,15 +76,19 @@ def set_ip_publico(porta):
                     print(f"\n🔗 Serveo URL pública: {serveo_url}\n")
 
 
-                    acao_teste = f"acao=text_to_image&resolution=1024x1024&seed=42&prompt=uma%20gatinha%20futurista"
-                    url_json = f"{serveo_url}/api_image.json?{acao_teste}"
-                    url_nav = f"{serveo_url}/api_image?{acao_teste}"
-
-                    print(f"Api json")
-                    print(f"{url_json}\n")
+                    img2img_params = f"acao=text_to_image&resolution=1024x1024&seed=42&prompt=uma%20gatinha%20futurista"
+                    img2img_nav = f"{serveo_url}/api_image?{img2img_params}"
+                    img2img_api = f"{serveo_url}/api_image.json?{img2img_params}"
 
                     print(f"Navegador")
-                    print(f"{url_nav}\n")
+                    print(f"image_to_image")
+                    print(f"{img2img_nav}\n")
+
+
+                    print(f"API")
+                    print(f"image_to_image")
+                    print(f"{img2img_api}\n")
+
 
 
                     with open("serveo_url.txt", "w") as f:
