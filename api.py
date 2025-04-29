@@ -81,18 +81,20 @@ def set_ip_publico(porta):
                     print(f"\n🔗 Serveo URL pública: {serveo_url}\n")
 
 
-                    img2img_params = f"acao=text_to_image&resolution=1024x1024&seed=42&prompt=uma%20gatinha%20futurista"
-                    img2img_nav = f"{serveo_url}/api_image?{img2img_params}"
-                    img2img_api = f"{serveo_url}/api_image.json?{img2img_params}"
+                                        prompt = "uma gatinha futurista"
+                    resolution = "1024x1024"
+                    seed = 42
 
-                    print(f"Navegador")
-                    print(f"image_to_image")
-                    print(f"{img2img_nav}\n")
+                    print("\n🌐 Links gerados:\n")
 
+                    for model in ["fast", "full"]:
+                        for tipo in ["navegador", "api"]:
+                            endpoint = "api_image" if tipo == "navegador" else "api_image.json"
+                            query = f"acao=text_to_image&model={model}&resolution={resolution}&seed={seed}&prompt={prompt.replace(' ', '%20')}"
+                            url = f"{serveo_url}/{endpoint}?{query}"
+                            print(f"{tipo.upper()} | model={model}")
+                            print(url + "\n")
 
-                    print(f"API")
-                    print(f"image_to_image")
-                    print(f"{img2img_api}\n")
 
 
 
