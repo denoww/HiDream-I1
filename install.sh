@@ -14,6 +14,8 @@ fi
 set -e
 
 # --- Login Hugging Face ---
+pip install huggingface_hub
+
 echo "\n🔐 Logando no Hugging Face..."
 huggingface-cli login --token "$HUGGING_FACE_TOKEN"
 

@@ -19,7 +19,7 @@ mkdir -p ~/workspace && cd ~/workspace
 git clone https://github.com/denoww/HiDream-I1.git
 cd ~/workspace/HiDream-I1
 chmod +x start.sh install.sh
-bash ./install.sh
+HUGGING_FACE_TOKEN="api_key" ./install.sh
 ```
 
 ✅ Este processo:
