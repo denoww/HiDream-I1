@@ -1,3 +1,81 @@
+# 🚀 HiDream API - Instalação e Execução no RunPod
+
+## 🖥️ Requisitos da Máquina
+
+- Imagem: **Qualquer** com **Python 3.10**
+- GPU: **80GB** (Ex: A100 80GB)
+- Disco: **150GB de HD** mínimo
+- Porta liberada: **7860** (para acesso externo à API)
+
+---
+
+## 🛠️ Instalação
+
+```bash
+mkdir -p ~/workspace && cd ~/workspace
+git clone https://github.com/denoww/HiDream-I1.git
+cd ~/workspace/HiDream-I1
+chmod +x start.sh install.sh
+HF_TOKEN="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" ./install.sh
+```
+
+✅ Este processo:
+- Clona o repositório
+- Dá permissão de execução nos scripts
+- Instala todas as dependências
+- Faz login no Hugging Face automaticamente
+
+---
+
+## 🔥 Iniciar o Servidor API
+
+```bash
+git pull
+./start.sh
+```
+
+✅ Este processo:
+- Atualiza o código
+- Inicia a API FastAPI + Uvicorn
+- Abre o acesso via Serveo (link público)
+
+---
+
+## 🌎 Acesso à API
+
+- Endpoint base: `http://<seu-endereço>:7860/`
+- Rota de teste: `http://<seu-endereço>:7860/api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42`
+
+---
+
+## 🧹 Dicas de Manutenção
+
+- Liberar memória GPU:
+  ```bash
+  kill -9 $(ps -ef | grep '[p]ython' | awk '{print $2}')
+  ```
+- Atualizar código:
+  ```bash
+  git pull
+  ```
+
+---
+
+## 📜 Observações
+
+- Para usar o modelo **Llama-3.1-8B-Instruct**, é necessário aceitar a licença no HuggingFace.
+- Mantenha seu **HF_TOKEN** seguro e NUNCA commitado no GitHub.
+- Se der erro de memória, mate processos Python antes de reiniciar o servidor.
+
+---
+
+> Feito com ❤️ para projetos de geração de imagem ultra-rápidos usando HiDream-I1 + FlashAttention 🚀
+
+
+
+
+
+
 # HiDream-I1
 
 ![HiDream-I1 Demo](assets/demo.jpg)
