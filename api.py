@@ -73,7 +73,19 @@ def set_ip_publico(porta):
                 match = re.search(r"https://[^\s]+", line)
                 if match:
                     serveo_url = match.group()
-                    print(f"🔗 Serveo URL pública: {serveo_url}")
+                    print(f"\n🔗 Serveo URL pública: {serveo_url}")
+
+
+                    promp_teste = f"acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42"
+                    txt_1 = f"{serveo_url}/api.json?{promp_teste}"
+                    txt_2 = f"{serveo_url}/api?acao?{promp_teste}"
+
+                    print(f"\nNavegador")
+                    print(f"{txt_1}")
+                    print(f"\nApi json")
+                    print(f"{txt_2}")
+
+
                     with open("serveo_url.txt", "w") as f:
                         f.write(serveo_url + "\n")
         except Exception as e:
@@ -213,5 +225,3 @@ if __name__ == "__main__":
 
 
 
-# /api.json?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
-# /api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
