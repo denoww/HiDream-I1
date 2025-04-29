@@ -18,6 +18,7 @@ app = FastAPI()
 
 # Carrega o pipeline apenas uma vez no startup
 pipe = None
+serveo_url = None
 
 @app.on_event("startup")
 async def on_startup():
@@ -75,7 +76,11 @@ def parse_resolution(resolution_str):
 
 @app.get("/")
 def index():
-    return JSONResponse({"msg": "HiDream API Online"})
+    return JSONResponse({
+        "App": "HiDream API ligado",
+        "status": "ok",
+        "public_url": serveo_url or "Aguardando criação do túnel..."
+    })
 
 @app.api_route("/api", methods=["GET", "POST"])
 async def api(request: Request, file: Optional[UploadFile] = File(None)):
