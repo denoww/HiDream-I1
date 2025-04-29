@@ -77,7 +77,8 @@ def carregar_modelos():
 @app.get("/")
 def index():
     return JSONResponse({
-        "status": "HiDream API ligado",
+        "App": "HiDream API ligado",
+        "status": "ok",
         "public_url": serveo_url or "Aguardando criação do túnel..."
     })
 
