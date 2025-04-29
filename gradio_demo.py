@@ -187,4 +187,4 @@ with gr.Blocks(title="HiDream Image Generator") as demo:
 
 # Launch app
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
