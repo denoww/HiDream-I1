@@ -76,9 +76,9 @@ def set_ip_publico(porta):
                     print(f"\n🔗 Serveo URL pública: {serveo_url}")
 
 
-                    promp_teste = f"acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42"
-                    txt_1 = f"{serveo_url}/api.json?{promp_teste}"
-                    txt_2 = f"{serveo_url}/api?acao?{promp_teste}"
+                    acao_teste = f"acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42"
+                    txt_1 = f"{serveo_url}/api_image.json?{acao_teste}"
+                    txt_2 = f"{serveo_url}/api_image?{acao_teste}"
 
                     print(f"\nNavegador")
                     print(f"{txt_1}")
@@ -114,36 +114,13 @@ def index():
         "public_url": serveo_url or "Aguardando criação do túnel..."
     })
 
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 
-@app.api_route("/api", methods=["GET", "POST"])
-async def api(request: Request, file: Optional[UploadFile] = File(None)):
+# Função principal que gera a imagem e responde baseado no modo
+async def api_image_handler(request: Request, file: Optional[UploadFile], response_format: str):
     try:
-        if request.method == "GET":
-            params = request.query_params
-        else:
-            content_type = request.headers.get("content-type", "")
-            if "application/json" in content_type:
-                params = await request.json()
-            else:
-                params = await request.form()
-
-        opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
-        opt["acao"] = params.get("acao")
-        opt["seed"] = int(opt.get("seed", -1))
-        opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
-        opt["prompt"] = opt.get("prompt", "")
-        opt["formato"] = opt.get("formato", "png").lower()
-        opt["file"] = await file.read() if file else None
-
-        if opt["acao"] == "text_to_image":
-            image = text_to_image(opt)
-        elif opt["acao"] == "image_to_image":
-            if not opt["file"]:
-                return JSONResponse({"error": "Faltando imagem para image_to_image"}, status_code=400)
-            image = image_to_image(opt)
-        else:
-            return JSONResponse({"error": "Ação inválida"}, status_code=400)
+        params = await pegar_parametros(request, file)
+        image, opt = await gerar_imagem(params)
 
         os.makedirs("outputs", exist_ok=True)
         output_filename = f"outputs/output_{opt['seed']}.{opt['formato']}"
@@ -151,11 +128,13 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
 
         image_url = f"{request.base_url}{output_filename}"
 
-        # Se for JSON, retorna JSON com base64 + URL
-        if "application/json" in request.headers.get("content-type", ""):
-            buf = io.BytesIO()
-            image.save(buf, format=opt["formato"].upper())
-            buf.seek(0)
+        buf = io.BytesIO()
+        image.save(buf, format=opt["formato"].upper())
+        buf.seek(0)
+
+        if response_format == "image":
+            return StreamingResponse(buf, media_type=f"image/{opt['formato']}")
+        else:  # json
             image_base64 = base64.b64encode(buf.read()).decode("utf-8")
             return JSONResponse({
                 "msg": "ok",
@@ -164,18 +143,85 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
                 "image_url": image_url,
                 "image_base64": image_base64
             })
-        else:
-            # Se for navegador ou não JSON, exibe a imagem diretamente
-            buf = io.BytesIO()
-            image.save(buf, format=opt["formato"].upper())
-            buf.seek(0)
-            return StreamingResponse(buf, media_type=f"image/{opt['formato']}")
 
     except Exception as e:
-        return JSONResponse({
-            "error": "Falha ao processar imagem",
-            "detalhe": str(e)
-        }, status_code=500)
+        return JSONResponse({"error": "Falha ao gerar imagem", "detalhe": str(e)}, status_code=500)
+
+# Rota para imagem direta
+@app.api_route("/api_image", methods=["GET", "POST"])
+async def api_image(request: Request, file: Optional[UploadFile] = File(None)):
+    return await api_image_handler(request, file, response_format="image")
+
+# Rota para JSON completo
+@app.api_route("/api_image.json", methods=["GET", "POST"])
+async def api_image_json(request: Request, file: Optional[UploadFile] = File(None)):
+    return await api_image_handler(request, file, response_format="json")
+
+# Função auxiliar para pegar parâmetros
+async def pegar_parametros(request: Request, file: Optional[UploadFile]):
+    if request.method == "GET":
+        params = request.query_params
+    else:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            params = await request.json()
+        else:
+            params = await request.form()
+
+    opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
+    opt["acao"] = params.get("acao")
+    opt["seed"] = int(opt.get("seed", -1))
+    opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
+    opt["prompt"] = opt.get("prompt", "")
+    opt["formato"] = opt.get("formato", "png").lower()
+    opt["file"] = await file.read() if file else None
+    return opt
+
+# Função auxiliar para gerar imagem
+async def gerar_imagem(opt):
+    if opt["acao"] == "text_to_image":
+        image = text_to_image(opt)
+    elif opt["acao"] == "image_to_image":
+        if not opt["file"]:
+            raise ValueError("Faltando imagem para image_to_image")
+        image = image_to_image(opt)
+    else:
+        raise ValueError("Ação inválida")
+    return image, opt
+
+
+
+# Função auxiliar para processar parâmetros
+async def pegar_parametros(request: Request, file: Optional[UploadFile]):
+    if request.method == "GET":
+        params = request.query_params
+    else:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            params = await request.json()
+        else:
+            params = await request.form()
+
+    opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
+    opt["acao"] = params.get("acao")
+    opt["seed"] = int(opt.get("seed", -1))
+    opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
+    opt["prompt"] = opt.get("prompt", "")
+    opt["formato"] = opt.get("formato", "png").lower()
+    opt["file"] = await file.read() if file else None
+    return opt
+
+# Função auxiliar para gerar imagem
+async def gerar_imagem(opt):
+    if opt["acao"] == "text_to_image":
+        image = text_to_image(opt)
+    elif opt["acao"] == "image_to_image":
+        if not opt["file"]:
+            raise ValueError("Faltando imagem para image_to_image")
+        image = image_to_image(opt)
+    else:
+        raise ValueError("Ação inválida")
+    return image, opt
 
 
 
