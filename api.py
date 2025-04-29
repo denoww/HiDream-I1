@@ -191,6 +191,18 @@ async def pegar_parametros(request: Request, file: Optional[UploadFile]):
 
 # Função auxiliar para gerar imagem
 async def gerar_imagem(opt):
+    global pipe, current_model
+    model = opt.get("model", "fast")
+
+    if model != current_model:
+        if pipe:
+            del pipe
+            torch.cuda.empty_cache()
+        print(f"Loading model: {model}")
+        pipe = load_hidream_pipeline(model)
+        current_model = model
+        print(f"✅ Model {model} loaded!")
+
     if opt["acao"] == "text_to_image":
         image = text_to_image(opt)
     elif opt["acao"] == "image_to_image":
@@ -238,12 +250,10 @@ async def gerar_imagem(opt):
 
 
 
-def text_to_image(opt, model="fast"):
+def text_to_image(opt):
     height, width = parse_resolution(opt["resolution"])
     seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
     generator = torch.Generator("cuda").manual_seed(seed)
-
-    pipe = pipes.get(model, pipes["fast"])  # Se não existir, usa "fast" como padrão
 
     image = pipe(
         opt["prompt"],
@@ -258,14 +268,11 @@ def text_to_image(opt, model="fast"):
     opt["seed"] = seed
     return image
 
-
-def image_to_image(opt, model="fast"):
+def image_to_image(opt):
     init_image = Image.open(io.BytesIO(opt["file"])).convert("RGB")
     height, width = parse_resolution(opt["resolution"])
     seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
     generator = torch.Generator("cuda").manual_seed(seed)
-
-    pipe = pipes.get(model, pipes["fast"])
 
     image = pipe.img2img(
         prompt=opt["prompt"],
@@ -280,7 +287,6 @@ def image_to_image(opt, model="fast"):
 
     opt["seed"] = seed
     return image
-
 
 # Rodar o servidor manualmente:
 if __name__ == "__main__":
