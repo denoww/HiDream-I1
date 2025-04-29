@@ -196,6 +196,6 @@ if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
 
 
-@app.on_event("startup")
-async def on_startup():
-    set_ip_publico(7860)
+    @app.on_event("startup")
+    async def on_startup():
+        set_ip_publico(porta)
