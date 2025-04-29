@@ -11,6 +11,8 @@ import base64
 import gc
 import threading
 import subprocess
+import re
+
 
 
 
@@ -177,7 +179,7 @@ def image_to_image(opt):
 # Rodar o servidor manualmente:
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=porta)
 
 
 
