@@ -167,6 +167,7 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
 
 
 
+
 def text_to_image(opt):
     height, width = parse_resolution(opt["resolution"])
     seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
