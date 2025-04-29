@@ -6,7 +6,11 @@ export PROJECT_DIR=$WORKSPACE/HiDream-I1
 export HIDREAM_PORT=7860
 
 # Token HF (edite se necessário)
-export HF_TOKEN="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"
+if [ -z "$HF_TOKEN" ]; then
+  echo "❌ Variável HF_TOKEN não definida. Use: HF_TOKEN=seu_token ./start.sh"
+  exit 1
+fi
+
 
 # Ativa persistência e segurança
 set -e
