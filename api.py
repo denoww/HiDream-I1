@@ -25,7 +25,11 @@ pipe = None
 serveo_url = None
 porta = 7860
 
+from fastapi.staticfiles import StaticFiles
 app = FastAPI()
+
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+
 
 @app.on_event("shutdown")
 def on_shutdown():
@@ -135,7 +139,8 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
         "msg": "ok",
         "seed": opt["seed"],
         "image_base64": image_base64,
-        "saved_as": output_filename
+        "saved_as": output_filename,
+        "image_url": f"{request.base_url}outputs/output_{opt['seed']}.{opt['formato']}",
     })
 
 def text_to_image(opt):
