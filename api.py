@@ -13,29 +13,26 @@ import gc
 # Importa o carregador do modelo
 from hidream_loader import load_hidream_pipeline
 
-# Inicializa o FastAPI
-app = FastAPI()
-
-# Carrega o pipeline apenas uma vez no startup
-pipe = None
+pipe = None # Carrega o pipeline apenas uma vez no startup
 serveo_url = None
 porta = 7860
 
-@app.on_event("startup")
-async def on_startup():
-    global pipe
-    pipe = load_hidream_pipeline()
-    set_ip_publico(porta)
 
-@app.on_event("shutdown")
-def on_shutdown():
+# Inicializa o FastAPI
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global pipe
+    print("🚀 Inicializando HiDream...")
+    pipe = load_hidream_pipeline()
+    yield
+    print("🧹 Liberando memória...")
     if pipe:
         del pipe
     gc.collect()
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
-    print("🧹 Memória CUDA liberada com sucesso.")
+
+app = FastAPI(lifespan=lifespan)
 
 
 def set_ip_publico(porta):
