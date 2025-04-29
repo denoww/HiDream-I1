@@ -17,16 +17,14 @@ import re
 
 
 # Importa o carregador do modelo
-from hidream_loader import load_hidream_pipeline
-
-
-# Carrega o pipeline apenas uma vez no startup
-pipe = None
-serveo_url = None
-porta = 7860
-
+from hidream_loader import load_hidream_pipeline, MODEL_CONFIGS
 pipe = None
 current_model = None
+
+
+
+serveo_url = None
+porta = 7860
 
 
 from fastapi.staticfiles import StaticFiles
@@ -281,44 +279,63 @@ async def gerar_imagem(opt):
 
 
 
-def text_to_image(opt):
-    height, width = parse_resolution(opt["resolution"])
-    seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
+
+def prepare_generation(opt, generator_fn):
+    global current_model, pipe
+
+    height, width = parse_resolution(opt.get("resolution", "1024x1024"))
+
+    seed = opt.get("seed", -1)
+    if seed == -1:
+        seed = torch.randint(0, 1_000_000, (1,)).item()
     generator = torch.Generator("cuda").manual_seed(seed)
 
-    image = pipe(
-        opt["prompt"],
-        height=height,
-        width=width,
-        guidance_scale=pipe.guidance_scale,
-        num_inference_steps=pipe.num_inference_steps,
-        num_images_per_prompt=1,
-        generator=generator
-    ).images[0]
+    config = MODEL_CONFIGS.get(current_model, MODEL_CONFIGS["fast"])
+    guidance_scale = config["guidance_scale"]
+    num_inference_steps = config["num_inference_steps"]
+
+    prompt = opt.get("prompt", "")
+
+    # Execução delegada
+    image = generator_fn(prompt, height, width, guidance_scale, num_inference_steps, generator)
 
     opt["seed"] = seed
     return image
+
+
+def text_to_image(opt):
+    def run_generation(prompt, height, width, guidance_scale, steps, generator):
+        return pipe(
+            prompt,
+            height=height,
+            width=width,
+            guidance_scale=guidance_scale,
+            num_inference_steps=steps,
+            num_images_per_prompt=1,
+            generator=generator
+        ).images[0]
+
+    return prepare_generation(opt, run_generation)
 
 
 def image_to_image(opt):
     init_image = Image.open(io.BytesIO(opt["file"])).convert("RGB")
-    height, width = parse_resolution(opt["resolution"])
-    seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
-    generator = torch.Generator("cuda").manual_seed(seed)
 
-    image = pipe.img2img(
-        prompt=opt["prompt"],
-        image=init_image,
-        height=height,
-        width=width,
-        guidance_scale=pipe.guidance_scale,
-        num_inference_steps=pipe.num_inference_steps,
-        generator=generator,
-        strength=0.8
-    ).images[0]
+    def run_generation(prompt, height, width, guidance_scale, steps, generator):
+        return pipe.img2img(
+            prompt=prompt,
+            image=init_image,
+            height=height,
+            width=width,
+            guidance_scale=guidance_scale,
+            num_inference_steps=steps,
+            generator=generator,
+            strength=0.8
+        ).images[0]
 
-    opt["seed"] = seed
-    return image
+    return prepare_generation(opt, run_generation)
+
+
 
 # Rodar o servidor manualmente:
 if __name__ == "__main__":
