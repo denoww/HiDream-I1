@@ -193,5 +193,11 @@ if __name__ == "__main__":
     # if not DEBUG_MODE:
     #     carregar_modelos()
 
-    start_serveo()
     uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=False)
+
+
+@app.on_event("startup")
+async def on_startup():
+    if not DEBUG_MODE:
+        carregar_modelos()
+    start_serveo()
