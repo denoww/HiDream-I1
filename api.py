@@ -1,0 +1,153 @@
+from fastapi import FastAPI, UploadFile, File, Form, Request
+from fastapi.responses import JSONResponse, HTMLResponse
+from pydantic import BaseModel
+from typing import Optional
+from PIL import Image
+import torch
+import io
+import uvicorn
+import base64
+import os
+
+# Modelos HiDream
+from hi_diffusers import HiDreamImagePipeline
+from hi_diffusers import HiDreamImageTransformer2DModel
+from hi_diffusers.schedulers.fm_solvers_unipc import FlowUniPCMultistepScheduler
+from hi_diffusers.schedulers.flash_flow_match import FlashFlowMatchEulerDiscreteScheduler
+from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
+
+app = FastAPI()
+
+# Modelos e config global
+MODEL_TYPE = "fast"
+MODEL_PREFIX = "HiDream-ai"
+LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+
+MODEL_CONFIGS = {
+    "fast": {
+        "path": f"{MODEL_PREFIX}/HiDream-I1-Fast",
+        "guidance_scale": 0.0,
+        "num_inference_steps": 16,
+        "shift": 3.0,
+        "scheduler": FlashFlowMatchEulerDiscreteScheduler
+    }
+}
+
+def parse_resolution(resolution_str):
+    mapping = {
+        "1024 × 1024 (Square)": (1024, 1024),
+        "768 × 1360 (Portrait)": (768, 1360),
+        "1360 × 768 (Landscape)": (1360, 768),
+        "880 × 1168 (Portrait)": (880, 1168),
+        "1168 × 880 (Landscape)": (1168, 880),
+        "1248 × 832 (Landscape)": (1248, 832),
+        "832 × 1248 (Portrait)": (832, 1248)
+    }
+    return mapping.get(resolution_str, (1024, 1024))
+
+def load_models():
+    config = MODEL_CONFIGS[MODEL_TYPE]
+    scheduler = config["scheduler"](num_train_timesteps=1000, shift=config["shift"], use_dynamic_shifting=False)
+
+    tokenizer_4 = PreTrainedTokenizerFast.from_pretrained(LLAMA_MODEL_NAME, use_fast=False)
+    text_encoder_4 = LlamaForCausalLM.from_pretrained(LLAMA_MODEL_NAME, output_hidden_states=True, output_attentions=True, torch_dtype=torch.bfloat16).to("cuda")
+    transformer = HiDreamImageTransformer2DModel.from_pretrained(config["path"], subfolder="transformer", torch_dtype=torch.bfloat16).to("cuda")
+
+    pipe = HiDreamImagePipeline.from_pretrained(config["path"], scheduler=scheduler, tokenizer_4=tokenizer_4, text_encoder_4=text_encoder_4, torch_dtype=torch.bfloat16).to("cuda", torch.bfloat16)
+    pipe.transformer = transformer
+
+    return pipe
+
+pipe = load_models()
+
+@app.get("/")
+def index():
+    return HTMLResponse("""
+    <html>
+    <head><title>HiDream API</title></head>
+    <body style='display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#0f0;font-family:sans-serif;'>
+        <h1 style='font-size:48px;'>HIDREAM API LIGADO</h1>
+    </body>
+    </html>
+    """)
+
+@app.post("/api")
+async def api(request: Request, file: Optional[UploadFile] = File(None)):
+    form = await request.form()
+    acao = form.get("acao")
+    opt = {k: form.get(k) for k in form.keys() if k != "file" and k != "acao"}
+
+    # Conversão de seed e resolução
+    opt["seed"] = int(opt.get("seed", -1))
+    opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
+    opt["prompt"] = opt.get("prompt", "")
+    opt["formato"] = opt.get("formato", "png").lower()
+
+    if file:
+        opt["file"] = await file.read()
+
+    if acao == "text_to_image":
+        image = text_to_image(opt)
+    elif acao == "image_to_image":
+        image = image_to_image(opt)
+    else:
+        return JSONResponse({"error": "Ação inválida"}, status_code=400)
+
+    # Salvar imagem localmente
+    os.makedirs("outputs", exist_ok=True)
+    output_filename = f"outputs/output_{opt['seed']}.{opt['formato']}"
+    image.save(output_filename, format=opt["formato"].upper())
+
+    # Retorna imagem como base64
+    buf = io.BytesIO()
+    image.save(buf, format=opt["formato"].upper())
+    buf.seek(0)
+    image_base64 = base64.b64encode(buf.read()).decode("utf-8")
+
+    return JSONResponse({
+        "msg": "ok",
+        "seed": opt["seed"],
+        "image_base64": image_base64,
+        "saved_as": output_filename
+    })
+
+def text_to_image(opt):
+    height, width = parse_resolution(opt["resolution"])
+    seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
+    generator = torch.Generator("cuda").manual_seed(seed)
+
+    image = pipe(
+        opt["prompt"],
+        height=height,
+        width=width,
+        guidance_scale=MODEL_CONFIGS[MODEL_TYPE]["guidance_scale"],
+        num_inference_steps=MODEL_CONFIGS[MODEL_TYPE]["num_inference_steps"],
+        num_images_per_prompt=1,
+        generator=generator
+    ).images[0]
+
+    opt["seed"] = seed
+    return image
+
+def image_to_image(opt):
+    init_image = Image.open(io.BytesIO(opt["file"])).convert("RGB")
+    height, width = parse_resolution(opt["resolution"])
+    seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
+    generator = torch.Generator("cuda").manual_seed(seed)
+
+    image = pipe.img2img(
+        prompt=opt["prompt"],
+        image=init_image,
+        height=height,
+        width=width,
+        guidance_scale=MODEL_CONFIGS[MODEL_TYPE]["guidance_scale"],
+        num_inference_steps=MODEL_CONFIGS[MODEL_TYPE]["num_inference_steps"],
+        generator=generator,
+        strength=0.8
+    ).images[0]
+
+    opt["seed"] = seed
+    return image
+
+if __name__ == "__main__":
+    uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=False)
