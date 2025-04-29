@@ -73,16 +73,16 @@ def set_ip_publico(porta):
                 match = re.search(r"https://[^\s]+", line)
                 if match:
                     serveo_url = match.group()
-                    print(f"\n🔗 Serveo URL pública: {serveo_url}")
+                    print(f"\n🔗 Serveo URL pública: {serveo_url}\n")
 
 
                     acao_teste = f"acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42"
                     txt_1 = f"{serveo_url}/api_image.json?{acao_teste}"
                     txt_2 = f"{serveo_url}/api_image?{acao_teste}"
 
-                    print(f"\nNavegador")
+                    print(f"Navegador\n")
                     print(f"{txt_1}")
-                    print(f"\nApi json")
+                    print(f"Api json\n")
                     print(f"{txt_2}")
 
 
