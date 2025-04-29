@@ -51,8 +51,8 @@ text_encoder_4 = LlamaForCausalLM.from_pretrained(
     LLAMA_MODEL_NAME,
     output_hidden_states=True,
     output_attentions=True,
-    torch_dtype=torch.float16
-).to("cuda", dtype=torch.float16)
+    torch_dtype=torch.bfloat16
+).to("cuda", dtype=torch.bfloat16)
 
 text_encoder_4.eval()  # 🔥 MUITO importante: diminui uso de memória e desativa gradientes
 
@@ -70,16 +70,16 @@ def load_hidream_pipeline(model_type="fast"):
     transformer = HiDreamImageTransformer2DModel.from_pretrained(
         pretrained_model_name_or_path,
         subfolder="transformer",
-        torch_dtype=torch.float16
-    ).to("cuda", dtype=torch.float16)
+        torch_dtype=torch.bfloat16
+    ).to("cuda", dtype=torch.bfloat16)
 
     pipe = HiDreamImagePipeline.from_pretrained(
         pretrained_model_name_or_path,
         scheduler=scheduler,
         tokenizer_4=tokenizer_4,
         text_encoder_4=text_encoder_4,
-        torch_dtype=torch.float16
-    ).to("cuda", dtype=torch.float16)
+        torch_dtype=torch.bfloat16
+    ).to("cuda", dtype=torch.bfloat16)
 
     pipe.transformer = transformer
     print(f"✅ Pipeline {model_type} carregado e otimizado!")
