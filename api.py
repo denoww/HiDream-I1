@@ -71,13 +71,17 @@ def index():
     </html>
     """)
 
-@app.post("/api")
+@app.api_route("/api", methods=["GET", "POST"])
 async def api(request: Request, file: Optional[UploadFile] = File(None)):
-    form = await request.form()
-    acao = form.get("acao")
-    opt = {k: form.get(k) for k in form.keys() if k != "file" and k != "acao"}
+    # Juntar parâmetros GET e POST de forma transparente
+    if request.method == "GET":
+        params = request.query_params
+    else:
+        params = await request.form()
 
-    # Conversão de seed e resolução
+    # Monta o opt padrão
+    opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
+    opt["acao"] = params.get("acao")
     opt["seed"] = int(opt.get("seed", -1))
     opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
     opt["prompt"] = opt.get("prompt", "")
@@ -85,20 +89,25 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
 
     if file:
         opt["file"] = await file.read()
+    else:
+        opt["file"] = None
 
-    if acao == "text_to_image":
+    # Agora flui igual para qualquer método
+    if opt["acao"] == "text_to_image":
         image = text_to_image(opt)
-    elif acao == "image_to_image":
+    elif opt["acao"] == "image_to_image":
+        if not opt["file"]:
+            return JSONResponse({"error": "Faltando imagem para image_to_image"}, status_code=400)
         image = image_to_image(opt)
     else:
         return JSONResponse({"error": "Ação inválida"}, status_code=400)
 
-    # Salvar imagem localmente
+    # Salvar imagem
     os.makedirs("outputs", exist_ok=True)
     output_filename = f"outputs/output_{opt['seed']}.{opt['formato']}"
     image.save(output_filename, format=opt["formato"].upper())
 
-    # Retorna imagem como base64
+    # Retornar imagem base64
     buf = io.BytesIO()
     image.save(buf, format=opt["formato"].upper())
     buf.seek(0)
@@ -110,6 +119,7 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
         "image_base64": image_base64,
         "saved_as": output_filename
     })
+
 
 def text_to_image(opt):
     height, width = parse_resolution(opt["resolution"])
