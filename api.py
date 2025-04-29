@@ -77,13 +77,15 @@ def set_ip_publico(porta):
 
 
                     acao_teste = f"acao=text_to_image&resolution=1024%20×%201024%20(Square)&seed=42&prompt=uma%20gatinha%20futurista"
-                    txt_1 = f"{serveo_url}/api_image.json?{acao_teste}"
-                    txt_2 = f"{serveo_url}/api_image?{acao_teste}"
+                    url_json = f"{serveo_url}/api_image.json?{acao_teste}"
+                    url_nav = f"{serveo_url}/api_image?{acao_teste}"
 
-                    print(f"Navegador\n")
-                    print(f"{txt_1}")
-                    print(f"Api json\n")
-                    print(f"{txt_2}")
+                    print(f"Navegador")
+                    print(f"{url_nav}\n")
+
+                    print(f"Api json")
+                    print(f"{url_json}\n")
+
 
 
                     with open("serveo_url.txt", "w") as f:
