@@ -53,8 +53,9 @@ def on_shutdown():
 
 def set_ip_publico(porta):
     def run_ssh():
-        global serveo_url, serveo_process
+        global serveo_url, serveo_process, pipe
         try:
+            print(f"🌐 Criando túnel público na porta {porta} via serveo.net...")
             process = subprocess.Popen(
                 ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
                 stdout=subprocess.PIPE,
@@ -62,12 +63,18 @@ def set_ip_publico(porta):
                 text=True
             )
             serveo_process = process
+
             for line in process.stdout:
                 print("[serveo]", line.strip())
                 match = re.search(r"https://[^\s]+", line)
                 if match:
                     serveo_url = match.group()
                     print(f"\n🔗 URL Pública: {serveo_url}\n")
+
+                    # Aguarda o modelo estar carregado
+                    while pipe is None:
+                        print("⏳ Aguardando inicialização do modelo...")
+                        time.sleep(1)
 
                     prompt = "uma gatinha futurista"
                     resolution = "1024x1024"
@@ -77,6 +84,7 @@ def set_ip_publico(porta):
                             endpoint = "api_image" if tipo == "navegador" else "api_image.json"
                             query = f"acao=text_to_image&model={model}&resolution={resolution}&seed={seed}&prompt={prompt.replace(' ', '%20')}"
                             print(f"{tipo.upper()} | model={model}: {serveo_url}/{endpoint}?{query}\n")
+                    break  # para de escutar após pegar a URL
         except Exception as e:
             print("[serveo][erro]", e)
 
