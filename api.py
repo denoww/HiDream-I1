@@ -35,6 +35,19 @@ app = FastAPI()
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 
+@app.on_event("startup")
+async def on_startup():
+    global pipe, current_model
+    print("🚀 Carregando modelo padrão (full)...")
+    pipe = load_hidream_pipeline("full")
+    current_model = "full"
+
+    await aquecer_modelo()  # chama aqui o aquecimento 🔥
+
+    set_ip_publico(porta)
+
+
+
 @app.on_event("shutdown")
 def on_shutdown():
     global pipe, serveo_process
@@ -50,15 +63,32 @@ def on_shutdown():
         serveo_process.terminate()
         print("🔌 Serveo finalizado.")
 
+async def aquecer_modelo():
+    global pipe
+    print("🔥 Pré-aquecendo modelo...")
+
+    # Pequena imagem fake só pra otimizar o CUDA
+    dummy_prompt = "warmup"
+    dummy_height = 512
+    dummy_width = 512
+    dummy_seed = 42
+    generator = torch.Generator("cuda").manual_seed(dummy_seed)
+
+    with torch.no_grad():
+        pipe(
+            dummy_prompt,
+            height=dummy_height,
+            width=dummy_width,
+            guidance_scale=pipe.guidance_scale,
+            num_inference_steps=pipe.num_inference_steps,
+            num_images_per_prompt=1,
+            generator=generator
+        ).images[0]
+
+    torch.cuda.synchronize()  # Espera terminar 100%
+    print("✅ Modelo pré-aquecido!")
 
 
-@app.on_event("startup")
-async def on_startup():
-    global pipe, current_model
-    print("🚀 Carregando modelo padrão (full)...")
-    pipe = load_hidream_pipeline("full")  # Só full no começo
-    current_model = "full"
-    set_ip_publico(porta)
 
 
 def set_ip_publico(porta):
