@@ -16,7 +16,7 @@ mkdir -p ~/workspace && cd ~/workspace
 git clone https://github.com/denoww/HiDream-I1.git
 cd ~/workspace/HiDream-I1
 chmod +x start.sh install.sh
-HF_TOKEN="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" ./install.sh
+HF_TOKEN="AQUI_HUGGIN_FACE_TOKEN" ./install.sh
 ```
 
 ✅ Este processo:
@@ -30,7 +30,7 @@ HF_TOKEN="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" ./install.sh
 ## 🔥 Iniciar o Servidor API
 
 ```bash
-~./workspace/HiDream-I1/start.sh
+bash ~/workspace/HiDream-I1/start.sh
 ```
 
 ✅ Este processo:
