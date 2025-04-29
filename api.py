@@ -1,8 +1,8 @@
-# api.py (corrigido com base no gradio.py funcional)
-
-from fastapi import FastAPI, UploadFile, File, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import FastAPI, UploadFile, File, Request, APIRouter
+from fastapi.responses import JSONResponse, StreamingResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+
+
 from typing import Optional
 from PIL import Image
 import torch
@@ -14,6 +14,7 @@ import subprocess
 import threading
 import re
 import time
+
 
 from hidream_loader import load_hidream_pipeline, MODEL_CONFIGS
 
@@ -30,16 +31,39 @@ os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 outputs_router = APIRouter()
-
 @outputs_router.get("/outputs", response_class=HTMLResponse)
 def listar_arquivos_html():
     pasta = "outputs"
     arquivos = sorted(os.listdir(pasta))
-    html = "<h2>🖼 Arquivos disponíveis em /outputs</h2><ul>"
+
+    html = """
+    <html>
+    <head>
+        <title>🖼 Arquivos Gerados</title>
+        <style>
+            body { font-family: sans-serif; padding: 20px; }
+            h2 { color: #444; }
+            ul { list-style: none; padding: 0; }
+            li { margin-bottom: 20px; display: flex; align-items: center; }
+            img { max-height: 100px; margin-right: 15px; border-radius: 8px; border: 1px solid #ccc; }
+            a { text-decoration: none; color: #007bff; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <h2>🖼 Arquivos disponíveis em /outputs</h2>
+        <ul>
+    """
     for nome in arquivos:
         caminho = f"/outputs/{nome}"
-        html += f'<li><a href="{caminho}" target="_blank">{nome}</a></li>'
-    html += "</ul>"
+        html += f'''
+            <li>
+                <a href="{caminho}" target="_blank">
+                    <img src="{caminho}" alt="{nome}">
+                    {nome}
+                </a>
+            </li>
+        '''
+    html += "</ul></body></html>"
     return html
 app.include_router(outputs_router)
 
