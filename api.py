@@ -280,8 +280,12 @@ async def gerar_imagem(opt):
 
 
 
+import time
+
 def prepare_generation(opt, generator_fn):
     global current_model, pipe
+
+    acao = opt['acao']
 
     height, width = parse_resolution(opt.get("resolution", "1024x1024"))
 
@@ -296,11 +300,23 @@ def prepare_generation(opt, generator_fn):
 
     prompt = opt.get("prompt", "")
 
-    # Execução delegada
+    # 📢 Log bonitão antes
+    print(f"\n🧠 Geração iniciada [{acao}]")
+    print(f"🟢 Modelo: {current_model} | Seed: {seed}")
+    print(f"🖼️ Resolução: {width}x{height} | Steps: {num_inference_steps} | Scale: {guidance_scale}")
+    print(f"🔤 Prompt: {prompt[:80]}{'...' if len(prompt) > 80 else ''}")
+
+    start_time = time.time()
+
+    # Geração em si
     image = generator_fn(prompt, height, width, guidance_scale, num_inference_steps, generator)
+
+    elapsed = time.time() - start_time
+    print(f"✅ Geração concluída em {elapsed:.2f} segundos\n")
 
     opt["seed"] = seed
     return image
+
 
 
 def text_to_image(opt):
@@ -316,6 +332,7 @@ def text_to_image(opt):
         ).images[0]
 
     return prepare_generation(opt, run_generation)
+
 
 
 def image_to_image(opt):
@@ -334,6 +351,7 @@ def image_to_image(opt):
         ).images[0]
 
     return prepare_generation(opt, run_generation)
+
 
 
 
