@@ -193,10 +193,14 @@ if not DEBUG_MODE:
     carregar_modelos()
 
 porta = 7860
+
 if __name__ == "__main__":
     uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
-
 
 @app.on_event("startup")
 async def on_startup():
     set_ip_publico(porta)
+
+
+# http://localhost:7860/api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
+
