@@ -166,21 +166,28 @@ def image_to_image(opt):
 def start_serveo():
     def run_ssh():
         global serveo_url
-        process = subprocess.Popen(
-            ["ssh", "-o", "StrictHostKeyChecking=no", "-R", "80:localhost:7860", "serveo.net"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
+        try:
+            process = subprocess.Popen(
+                ["ssh", "-o", "StrictHostKeyChecking=no", "-R", "80:localhost:7860", "serveo.net"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
 
-        for line in process.stdout:
-            print("[serveo] " + line.strip())
-            match = re.search(r"https://[^\s]+", line)
-            if match:
-                serveo_url = match.group()
-                print(f"🔗 Serveo URL pública: {serveo_url}")
+            for line in process.stdout:
+                print("[serveo] " + line.strip())
+                match = re.search(r"https://[^\s]+", line)
+                if match:
+                    serveo_url = match.group()
+                    print(f"🔗 Serveo URL pública: {serveo_url}")
+                    # salva em arquivo
+                    with open("serveo_url.txt", "w") as f:
+                        f.write(serveo_url + "\n")
+        except Exception as e:
+            print(f"[serveo][erro] {e}")
 
     threading.Thread(target=run_ssh, daemon=True).start()
+
 
 if __name__ == "__main__":
     # if not DEBUG_MODE:
