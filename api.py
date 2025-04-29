@@ -27,13 +27,19 @@ app = FastAPI()
 
 @app.on_event("shutdown")
 def on_shutdown():
-    global pipe
+    global pipe, serveo_process
     if pipe:
         del pipe
     gc.collect()
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
     print("🧹 Memória CUDA liberada com sucesso.")
+
+    # Finaliza túnel Serveo
+    if serveo_process and serveo_process.poll() is None:
+        serveo_process.terminate()
+        print("🔌 Serveo finalizado.")
+
 
 
 @app.on_event("startup")
@@ -46,7 +52,7 @@ async def on_startup():
 
 def set_ip_publico(porta):
     def run_ssh():
-        global serveo_url
+        global serveo_url, serveo_process
         try:
             process = subprocess.Popen(
                 ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
@@ -54,6 +60,7 @@ def set_ip_publico(porta):
                 stderr=subprocess.STDOUT,
                 text=True
             )
+            serveo_process = process  # salva referência global
 
             for line in process.stdout:
                 print("[serveo] " + line.strip())
@@ -61,14 +68,12 @@ def set_ip_publico(porta):
                 if match:
                     serveo_url = match.group()
                     print(f"🔗 Serveo URL pública: {serveo_url}")
-                    # salva em arquivo
                     with open("serveo_url.txt", "w") as f:
                         f.write(serveo_url + "\n")
         except Exception as e:
             print(f"[serveo][erro] {e}")
 
     threading.Thread(target=run_ssh, daemon=True).start()
-
 
 
 def parse_resolution(resolution_str):
