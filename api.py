@@ -102,46 +102,70 @@ def index():
         "public_url": serveo_url or "Aguardando criação do túnel..."
     })
 
+from fastapi.responses import StreamingResponse
+
 @app.api_route("/api", methods=["GET", "POST"])
 async def api(request: Request, file: Optional[UploadFile] = File(None)):
-    if request.method == "GET":
-        params = request.query_params
-    else:
-        params = await request.form()
+    try:
+        if request.method == "GET":
+            params = request.query_params
+        else:
+            content_type = request.headers.get("content-type", "")
+            if "application/json" in content_type:
+                params = await request.json()
+            else:
+                params = await request.form()
 
-    opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
-    opt["acao"] = params.get("acao")
-    opt["seed"] = int(opt.get("seed", -1))
-    opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
-    opt["prompt"] = opt.get("prompt", "")
-    opt["formato"] = opt.get("formato", "png").lower()
-    opt["file"] = await file.read() if file else None
+        opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
+        opt["acao"] = params.get("acao")
+        opt["seed"] = int(opt.get("seed", -1))
+        opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
+        opt["prompt"] = opt.get("prompt", "")
+        opt["formato"] = opt.get("formato", "png").lower()
+        opt["file"] = await file.read() if file else None
 
-    if opt["acao"] == "text_to_image":
-        image = text_to_image(opt)
-    elif opt["acao"] == "image_to_image":
-        if not opt["file"]:
-            return JSONResponse({"error": "Faltando imagem para image_to_image"}, status_code=400)
-        image = image_to_image(opt)
-    else:
-        return JSONResponse({"error": "Ação inválida"}, status_code=400)
+        if opt["acao"] == "text_to_image":
+            image = text_to_image(opt)
+        elif opt["acao"] == "image_to_image":
+            if not opt["file"]:
+                return JSONResponse({"error": "Faltando imagem para image_to_image"}, status_code=400)
+            image = image_to_image(opt)
+        else:
+            return JSONResponse({"error": "Ação inválida"}, status_code=400)
 
-    os.makedirs("outputs", exist_ok=True)
-    output_filename = f"outputs/output_{opt['seed']}.{opt['formato']}"
-    image.save(output_filename, format=opt["formato"].upper())
+        os.makedirs("outputs", exist_ok=True)
+        output_filename = f"outputs/output_{opt['seed']}.{opt['formato']}"
+        image.save(output_filename, format=opt["formato"].upper())
 
-    buf = io.BytesIO()
-    image.save(buf, format=opt["formato"].upper())
-    buf.seek(0)
-    image_base64 = base64.b64encode(buf.read()).decode("utf-8")
+        image_url = f"{request.base_url}{output_filename}"
 
-    return JSONResponse({
-        "image_url": f"{request.base_url}{output_filename}",
-        "seed": opt["seed"],
-        "msg": "ok",
-        "saved_as": output_filename,
-        "image_base64": image_base64,
-    })
+        # Se for JSON, retorna JSON com base64 + URL
+        if "application/json" in request.headers.get("content-type", ""):
+            buf = io.BytesIO()
+            image.save(buf, format=opt["formato"].upper())
+            buf.seek(0)
+            image_base64 = base64.b64encode(buf.read()).decode("utf-8")
+            return JSONResponse({
+                "msg": "ok",
+                "seed": opt["seed"],
+                "saved_as": output_filename,
+                "image_url": image_url,
+                "image_base64": image_base64
+            })
+        else:
+            # Se for navegador ou não JSON, exibe a imagem diretamente
+            buf = io.BytesIO()
+            image.save(buf, format=opt["formato"].upper())
+            buf.seek(0)
+            return StreamingResponse(buf, media_type=f"image/{opt['formato']}")
+
+    except Exception as e:
+        return JSONResponse({
+            "error": "Falha ao processar imagem",
+            "detalhe": str(e)
+        }, status_code=500)
+
+
 
 def text_to_image(opt):
     height, width = parse_resolution(opt["resolution"])
@@ -188,4 +212,5 @@ if __name__ == "__main__":
 
 
 
-# http://localhost:7860/api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
+# /api.json?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
+# /api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
