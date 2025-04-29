@@ -136,11 +136,11 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
     image_base64 = base64.b64encode(buf.read()).decode("utf-8")
 
     return JSONResponse({
-        "msg": "ok",
+        "image_url": f"{request.base_url}{output_filename}",
         "seed": opt["seed"],
-        "image_base64": image_base64,
+        "msg": "ok",
         "saved_as": output_filename,
-        "image_url": f"{request.base_url}outputs/output_{opt['seed']}.{opt['formato']}",
+        "image_base64": image_base64,
     })
 
 def text_to_image(opt):
