@@ -8,17 +8,16 @@ import io
 import uvicorn
 import base64
 import os
+import subprocess
+import threading
+import re
 
-# Modelos HiDream
-from hi_diffusers import HiDreamImagePipeline
-from hi_diffusers import HiDreamImageTransformer2DModel
-from hi_diffusers.schedulers.fm_solvers_unipc import FlowUniPCMultistepScheduler
-from hi_diffusers.schedulers.flash_flow_match import FlashFlowMatchEulerDiscreteScheduler
-from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
-
+# Configurações globais
+DEBUG_MODE = False
 serveo_url = None
+pipe = None
 
-
+# FastAPI
 app = FastAPI()
 
 # Modelos e config global
@@ -32,7 +31,7 @@ MODEL_CONFIGS = {
         "guidance_scale": 0.0,
         "num_inference_steps": 16,
         "shift": 3.0,
-        "scheduler": FlashFlowMatchEulerDiscreteScheduler
+        "scheduler": lambda **kwargs: __import__("hi_diffusers.schedulers.flash_flow_match").schedulers.flash_flow_match.FlashFlowMatchEulerDiscreteScheduler(**kwargs)
     }
 }
 
@@ -48,7 +47,16 @@ def parse_resolution(resolution_str):
     }
     return mapping.get(resolution_str, (1024, 1024))
 
-def load_models():
+def carregar_modelos():
+    global pipe
+    if DEBUG_MODE:
+        print("🧪 DEBUG_MODE ativado — modelos não serão carregados.")
+        return
+
+    from hi_diffusers import HiDreamImagePipeline
+    from hi_diffusers import HiDreamImageTransformer2DModel
+    from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
+
     config = MODEL_CONFIGS[MODEL_TYPE]
     scheduler = config["scheduler"](num_train_timesteps=1000, shift=config["shift"], use_dynamic_shifting=False)
 
@@ -56,14 +64,15 @@ def load_models():
     text_encoder_4 = LlamaForCausalLM.from_pretrained(LLAMA_MODEL_NAME, output_hidden_states=True, output_attentions=True, torch_dtype=torch.bfloat16).to("cuda")
     transformer = HiDreamImageTransformer2DModel.from_pretrained(config["path"], subfolder="transformer", torch_dtype=torch.bfloat16).to("cuda")
 
-    pipe = HiDreamImagePipeline.from_pretrained(config["path"], scheduler=scheduler, tokenizer_4=tokenizer_4, text_encoder_4=text_encoder_4, torch_dtype=torch.bfloat16).to("cuda", torch.bfloat16)
+    pipe = HiDreamImagePipeline.from_pretrained(
+        config["path"],
+        scheduler=scheduler,
+        tokenizer_4=tokenizer_4,
+        text_encoder_4=text_encoder_4,
+        torch_dtype=torch.bfloat16
+    ).to("cuda", torch.bfloat16)
     pipe.transformer = transformer
-
-    return pipe
-
-pipe = load_models()
-
-from fastapi.responses import JSONResponse
+    print("✅ Modelos carregados com sucesso.")
 
 @app.get("/")
 def index():
@@ -72,29 +81,25 @@ def index():
         "public_url": serveo_url or "Aguardando criação do túnel..."
     })
 
-
 @app.api_route("/api", methods=["GET", "POST"])
 async def api(request: Request, file: Optional[UploadFile] = File(None)):
-    # Juntar parâmetros GET e POST de forma transparente
     if request.method == "GET":
         params = request.query_params
     else:
         params = await request.form()
 
-    # Monta o opt padrão
     opt = {k: params.get(k) for k in params.keys() if k != "file" and k != "acao"}
     opt["acao"] = params.get("acao")
     opt["seed"] = int(opt.get("seed", -1))
     opt["resolution"] = opt.get("resolution", "1024 × 1024 (Square)")
     opt["prompt"] = opt.get("prompt", "")
     opt["formato"] = opt.get("formato", "png").lower()
+    opt["file"] = await file.read() if file else None
 
-    if file:
-        opt["file"] = await file.read()
-    else:
-        opt["file"] = None
+    if DEBUG_MODE:
+        print(f"⚙️ DEBUG params: {opt}")
+        return JSONResponse({"debug": True, "params": opt})
 
-    # Agora flui igual para qualquer método
     if opt["acao"] == "text_to_image":
         image = text_to_image(opt)
     elif opt["acao"] == "image_to_image":
@@ -104,12 +109,10 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
     else:
         return JSONResponse({"error": "Ação inválida"}, status_code=400)
 
-    # Salvar imagem
     os.makedirs("outputs", exist_ok=True)
     output_filename = f"outputs/output_{opt['seed']}.{opt['formato']}"
     image.save(output_filename, format=opt["formato"].upper())
 
-    # Retornar imagem base64
     buf = io.BytesIO()
     image.save(buf, format=opt["formato"].upper())
     buf.seek(0)
@@ -121,7 +124,6 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
         "image_base64": image_base64,
         "saved_as": output_filename
     })
-
 
 def text_to_image(opt):
     height, width = parse_resolution(opt["resolution"])
@@ -161,11 +163,6 @@ def image_to_image(opt):
     opt["seed"] = seed
     return image
 
-import subprocess
-import threading
-import uvicorn
-import re
-
 def start_serveo():
     def run_ssh():
         global serveo_url
@@ -186,5 +183,8 @@ def start_serveo():
     threading.Thread(target=run_ssh, daemon=True).start()
 
 if __name__ == "__main__":
-    start_tunnel_serveo()
+    # if not DEBUG_MODE:
+    #     carregar_modelos()
+
+    start_serveo()
     uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=False)
