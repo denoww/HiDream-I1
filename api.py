@@ -23,6 +23,7 @@ pipe = None
 async def on_startup():
     global pipe
     pipe = load_hidream_pipeline()
+    set_ip_publico(porta)
 
 @app.on_event("shutdown")
 def on_shutdown():
@@ -33,6 +34,32 @@ def on_shutdown():
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
     print("🧹 Memória CUDA liberada com sucesso.")
+
+
+def set_ip_publico(porta):
+    def run_ssh():
+        global serveo_url
+        try:
+            process = subprocess.Popen(
+                ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            )
+
+            for line in process.stdout:
+                print("[serveo] " + line.strip())
+                match = re.search(r"https://[^\s]+", line)
+                if match:
+                    serveo_url = match.group()
+                    print(f"🔗 Serveo URL pública: {serveo_url}")
+                    # salva em arquivo
+                    with open("serveo_url.txt", "w") as f:
+                        f.write(serveo_url + "\n")
+        except Exception as e:
+            print(f"[serveo][erro] {e}")
+
+    threading.Thread(target=run_ssh, daemon=True).start()
 
 def parse_resolution(resolution_str):
     mapping = {
