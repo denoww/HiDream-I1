@@ -163,12 +163,12 @@ def image_to_image(opt):
     opt["seed"] = seed
     return image
 
-def start_serveo():
+def set_ip_publico(porta):
     def run_ssh():
         global serveo_url
         try:
             process = subprocess.Popen(
-                ["ssh", "-o", "StrictHostKeyChecking=no", "-R", "80:localhost:7860", "serveo.net"],
+                ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True
@@ -193,11 +193,11 @@ if __name__ == "__main__":
     # if not DEBUG_MODE:
     #     carregar_modelos()
 
-    uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=False)
+    uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
 
 
 @app.on_event("startup")
 async def on_startup():
     if not DEBUG_MODE:
         carregar_modelos()
-    start_serveo()
+    set_ip_publico(7860)
