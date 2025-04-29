@@ -51,7 +51,12 @@ def on_shutdown():
 @app.on_event("startup")
 async def on_startup():
     global pipe
-    pipe = load_hidream_pipeline()
+    # pipe = load_hidream_pipeline()
+    pipes = {
+        "fast": load_hidream_pipeline("fast"),
+        "full": load_hidream_pipeline("full")
+    }
+
     set_ip_publico(porta)
 
 
@@ -231,17 +236,19 @@ async def gerar_imagem(opt):
 
 
 
-def text_to_image(opt):
+def text_to_image(opt, model="fast"):
     height, width = parse_resolution(opt["resolution"])
     seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
     generator = torch.Generator("cuda").manual_seed(seed)
+
+    pipe = pipes.get(model, pipes["fast"])  # Se não existir, usa "fast" como padrão
 
     image = pipe(
         opt["prompt"],
         height=height,
         width=width,
-        guidance_scale=0.0,
-        num_inference_steps=16,
+        guidance_scale=pipe.guidance_scale,
+        num_inference_steps=pipe.num_inference_steps,
         num_images_per_prompt=1,
         generator=generator
     ).images[0]
@@ -249,25 +256,29 @@ def text_to_image(opt):
     opt["seed"] = seed
     return image
 
-def image_to_image(opt):
+
+def image_to_image(opt, model="fast"):
     init_image = Image.open(io.BytesIO(opt["file"])).convert("RGB")
     height, width = parse_resolution(opt["resolution"])
     seed = opt["seed"] if opt["seed"] != -1 else torch.randint(0, 1000000, (1,)).item()
     generator = torch.Generator("cuda").manual_seed(seed)
+
+    pipe = pipes.get(model, pipes["fast"])
 
     image = pipe.img2img(
         prompt=opt["prompt"],
         image=init_image,
         height=height,
         width=width,
-        guidance_scale=0.0,
-        num_inference_steps=16,
+        guidance_scale=pipe.guidance_scale,
+        num_inference_steps=pipe.num_inference_steps,
         generator=generator,
         strength=0.8
     ).images[0]
 
     opt["seed"] = seed
     return image
+
 
 # Rodar o servidor manualmente:
 if __name__ == "__main__":
