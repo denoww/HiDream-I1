@@ -189,34 +189,30 @@ def set_ip_publico(porta):
 
     threading.Thread(target=run_ssh, daemon=True).start()
 
-if not DEBUG_MODE:
-    carregar_modelos()
 
-porta = 7860
 
-if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
+
 
 @app.on_event("startup")
 async def on_startup():
+    if not DEBUG_MODE:
+        carregar_modelos()
     set_ip_publico(porta)
-
-
-import gc
-import torch
 
 @app.on_event("shutdown")
 def liberar_gpu():
     global pipe
-    try:
+    if pipe:
         del pipe
-    except:
-        pass
     gc.collect()
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
     print("🧹 Memória CUDA liberada com sucesso.")
 
+porta = 7860
+
+if __name__ == "__main__":
+    uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
 
 # http://localhost:7860/api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
 
