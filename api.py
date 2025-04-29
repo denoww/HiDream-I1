@@ -76,7 +76,7 @@ def set_ip_publico(porta):
                     print(f"\n🔗 Serveo URL pública: {serveo_url}\n")
 
 
-                    acao_teste = f"acao=text_to_image&resolution=1024×1024&seed=42&prompt=uma%20gatinha%20futurista"
+                    acao_teste = f"acao=text_to_image&resolution=1024x1024&seed=42&prompt=uma%20gatinha%20futurista"
                     url_json = f"{serveo_url}/api_image.json?{acao_teste}"
                     url_nav = f"{serveo_url}/api_image?{acao_teste}"
 
@@ -97,13 +97,13 @@ def set_ip_publico(porta):
 
 def parse_resolution(resolution_str):
     mapping = {
-        "1024×1024": (1024, 1024),
-        "768×1360": (768, 1360),
-        "1360×768": (1360, 768),
-        "880×1168": (880, 1168),
-        "1168×880": (1168, 880),
-        "1248×832": (1248, 832),
-        "832×1248": (832, 1248)
+        "1024x1024": (1024, 1024),
+        "768x1360": (768, 1360),
+        "1360x768": (1360, 768),
+        "880x1168": (880, 1168),
+        "1168x880": (1168, 880),
+        "1248x832": (1248, 832),
+        "832x1248": (832, 1248)
     }
     return mapping.get(resolution_str, (1024, 1024))
 
