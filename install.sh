@@ -20,11 +20,6 @@ echo "\n🔐 Logando no Hugging Face..."
 huggingface-cli login --token "$HUGGING_FACE_TOKEN"
 
 
-# --- Clonar repositório ---
-echo "\n📁 Clonando HiDream..."
-mkdir -p $WORKSPACE && cd $WORKSPACE
-[ ! -d "$PROJECT_DIR" ] && git clone https://github.com/denoww/HiDream-I1.git
-cd $PROJECT_DIR && git pull
 
 # --- Instalar dependências ---
 echo "\n📦 Instalando dependências principais..."
