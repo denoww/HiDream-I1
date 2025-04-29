@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # Caminho base
-export WORKSPACE=~/workspace
-export PROJECT_DIR=$WORKSPACE/HiDream-I1
-export HIDREAM_PORT=7860
+
 
 # Token HF (edite se necessário)
 if [ -z "$HF_TOKEN" ]; then
