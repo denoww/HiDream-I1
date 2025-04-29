@@ -190,3 +190,8 @@ def index():
         "status": "ok",
         "public_url": serveo_url or "Aguardando túnel..."
     })
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("api:app", host="0.0.0.0", port=porta)
