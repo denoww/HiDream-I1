@@ -9,6 +9,8 @@ import io
 import os
 import base64
 import gc
+import threading
+
 
 # Importa o carregador do modelo
 from hidream_loader import load_hidream_pipeline
