@@ -202,5 +202,21 @@ async def on_startup():
     set_ip_publico(porta)
 
 
+import gc
+import torch
+
+@app.on_event("shutdown")
+def liberar_gpu():
+    global pipe
+    try:
+        del pipe
+    except:
+        pass
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect()
+    print("🧹 Memória CUDA liberada com sucesso.")
+
+
 # http://localhost:7860/api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
 
