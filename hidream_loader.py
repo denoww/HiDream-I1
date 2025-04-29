@@ -6,10 +6,23 @@ from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
 from hi_diffusers.schedulers.fm_solvers_unipc import FlowUniPCMultistepScheduler
 from hi_diffusers.schedulers.flash_flow_match import FlashFlowMatchEulerDiscreteScheduler
 
+
+
+torch.backends.cudnn.benchmark = True
+
+
 MODEL_PREFIX = "HiDream-ai"
 LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
+# Configs
 MODEL_CONFIGS = {
+    "dev": {
+        "path": f"{MODEL_PREFIX}/HiDream-I1-Dev",
+        "guidance_scale": 0.0,
+        "num_inference_steps": 28,
+        "shift": 6.0,
+        "scheduler": FlashFlowMatchEulerDiscreteScheduler
+    },
     "full": {
         "path": f"{MODEL_PREFIX}/HiDream-I1-Full",
         "guidance_scale": 5.0,
@@ -26,22 +39,48 @@ MODEL_CONFIGS = {
     }
 }
 
+# Carrega tokenizer e text_encoder 1 vez só
+print("🔵 Carregando tokenizer e text_encoder...")
+
+tokenizer_4 = PreTrainedTokenizerFast.from_pretrained(
+    LLAMA_MODEL_NAME,
+    use_fast=False
+)
+
+text_encoder_4 = LlamaForCausalLM.from_pretrained(
+    LLAMA_MODEL_NAME,
+    output_hidden_states=True,
+    output_attentions=True,
+    torch_dtype=torch.float16
+).to("cuda", dtype=torch.float16)
+
+text_encoder_4.eval()  # 🔥 MUITO importante: diminui uso de memória e desativa gradientes
+
+print("✅ Tokenizer e Text Encoder prontos!")
+
+
 def load_hidream_pipeline(model_type="fast"):
     config = MODEL_CONFIGS[model_type]
     scheduler = config["scheduler"](num_train_timesteps=1000, shift=config["shift"], use_dynamic_shifting=False)
 
-    tokenizer_4 = PreTrainedTokenizerFast.from_pretrained(LLAMA_MODEL_NAME, use_fast=False)
-    text_encoder_4 = LlamaForCausalLM.from_pretrained(LLAMA_MODEL_NAME, output_hidden_states=True, output_attentions=True, torch_dtype=torch.bfloat16).to("cuda")
-    transformer = HiDreamImageTransformer2DModel.from_pretrained(config["path"], subfolder="transformer", torch_dtype=torch.bfloat16).to("cuda")
+    pretrained_model_name_or_path = config["path"]
+
+    print(f"🔵 Carregando modelo: {model_type}...")
+
+    transformer = HiDreamImageTransformer2DModel.from_pretrained(
+        pretrained_model_name_or_path,
+        subfolder="transformer",
+        torch_dtype=torch.float16
+    ).to("cuda", dtype=torch.float16)
 
     pipe = HiDreamImagePipeline.from_pretrained(
-        config["path"],
+        pretrained_model_name_or_path,
         scheduler=scheduler,
         tokenizer_4=tokenizer_4,
         text_encoder_4=text_encoder_4,
-        torch_dtype=torch.bfloat16
-    ).to("cuda", torch.bfloat16)
-    pipe.transformer = transformer
+        torch_dtype=torch.float16
+    ).to("cuda", dtype=torch.float16)
 
-    print(f"✅ HiDream Pipeline carregado para modelo: {model_type}")
+    pipe.transformer = transformer
+    print(f"✅ Pipeline {model_type} carregado e otimizado!")
     return pipe
