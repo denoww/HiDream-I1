@@ -10,6 +10,8 @@ import os
 import base64
 import gc
 import threading
+import subprocess
+
 
 
 # Importa o carregador do modelo
@@ -23,12 +25,6 @@ porta = 7860
 
 app = FastAPI()
 
-@app.on_event("startup")
-async def on_startup():
-    global pipe
-    pipe = load_hidream_pipeline()
-    set_ip_publico(porta)
-
 @app.on_event("shutdown")
 def on_shutdown():
     global pipe
@@ -38,6 +34,14 @@ def on_shutdown():
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
     print("🧹 Memória CUDA liberada com sucesso.")
+
+
+@app.on_event("startup")
+async def on_startup():
+    global pipe
+    pipe = load_hidream_pipeline()
+    set_ip_publico(porta)
+
 
 
 def set_ip_publico(porta):
@@ -64,6 +68,8 @@ def set_ip_publico(porta):
             print(f"[serveo][erro] {e}")
 
     threading.Thread(target=run_ssh, daemon=True).start()
+
+
 
 def parse_resolution(resolution_str):
     mapping = {
