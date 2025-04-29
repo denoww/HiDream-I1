@@ -1,39 +1,38 @@
+# api.py
+
 from fastapi import FastAPI, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse, HTMLResponse
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 from typing import Optional
 from PIL import Image
 import torch
 import io
-import uvicorn
-import base64
 import os
-import subprocess
-import threading
-import re
+import base64
+import gc
 
-# Configurações globais
-DEBUG_MODE = False
-serveo_url = None
-pipe = None
+# Importa o carregador do modelo
+from hidream_loader import load_hidream_pipeline
 
-# FastAPI
+# Inicializa o FastAPI
 app = FastAPI()
 
-# Modelos e config global
-MODEL_TYPE = "fast"
-MODEL_PREFIX = "HiDream-ai"
-LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+# Carrega o pipeline apenas uma vez no startup
+pipe = None
 
-MODEL_CONFIGS = {
-    "fast": {
-        "path": f"{MODEL_PREFIX}/HiDream-I1-Fast",
-        "guidance_scale": 0.0,
-        "num_inference_steps": 16,
-        "shift": 3.0,
-        "scheduler": lambda **kwargs: __import__("hi_diffusers.schedulers.flash_flow_match").schedulers.flash_flow_match.FlashFlowMatchEulerDiscreteScheduler(**kwargs)
-    }
-}
+@app.on_event("startup")
+async def on_startup():
+    global pipe
+    pipe = load_hidream_pipeline()
+
+@app.on_event("shutdown")
+def on_shutdown():
+    global pipe
+    if pipe:
+        del pipe
+    gc.collect()
+    torch.cuda.empty_cache()
+    torch.cuda.ipc_collect()
+    print("🧹 Memória CUDA liberada com sucesso.")
 
 def parse_resolution(resolution_str):
     mapping = {
@@ -47,40 +46,9 @@ def parse_resolution(resolution_str):
     }
     return mapping.get(resolution_str, (1024, 1024))
 
-def carregar_modelos():
-    global pipe
-    if DEBUG_MODE:
-        print("🧪 DEBUG_MODE ativado — modelos não serão carregados.")
-        return
-
-    from hi_diffusers import HiDreamImagePipeline
-    from hi_diffusers import HiDreamImageTransformer2DModel
-    from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
-
-    config = MODEL_CONFIGS[MODEL_TYPE]
-    scheduler = config["scheduler"](num_train_timesteps=1000, shift=config["shift"], use_dynamic_shifting=False)
-
-    tokenizer_4 = PreTrainedTokenizerFast.from_pretrained(LLAMA_MODEL_NAME, use_fast=False)
-    text_encoder_4 = LlamaForCausalLM.from_pretrained(LLAMA_MODEL_NAME, output_hidden_states=True, output_attentions=True, torch_dtype=torch.bfloat16).to("cuda")
-    transformer = HiDreamImageTransformer2DModel.from_pretrained(config["path"], subfolder="transformer", torch_dtype=torch.bfloat16).to("cuda")
-
-    pipe = HiDreamImagePipeline.from_pretrained(
-        config["path"],
-        scheduler=scheduler,
-        tokenizer_4=tokenizer_4,
-        text_encoder_4=text_encoder_4,
-        torch_dtype=torch.bfloat16
-    ).to("cuda", torch.bfloat16)
-    pipe.transformer = transformer
-    print("✅ Modelos carregados com sucesso.")
-
 @app.get("/")
 def index():
-    return JSONResponse({
-        "App": "HiDream API ligado",
-        "status": "ok",
-        "public_url": serveo_url or "Aguardando criação do túnel..."
-    })
+    return JSONResponse({"msg": "HiDream API Online"})
 
 @app.api_route("/api", methods=["GET", "POST"])
 async def api(request: Request, file: Optional[UploadFile] = File(None)):
@@ -96,10 +64,6 @@ async def api(request: Request, file: Optional[UploadFile] = File(None)):
     opt["prompt"] = opt.get("prompt", "")
     opt["formato"] = opt.get("formato", "png").lower()
     opt["file"] = await file.read() if file else None
-
-    if DEBUG_MODE:
-        print(f"⚙️ DEBUG params: {opt}")
-        return JSONResponse({"debug": True, "params": opt})
 
     if opt["acao"] == "text_to_image":
         image = text_to_image(opt)
@@ -135,8 +99,8 @@ def text_to_image(opt):
         opt["prompt"],
         height=height,
         width=width,
-        guidance_scale=MODEL_CONFIGS[MODEL_TYPE]["guidance_scale"],
-        num_inference_steps=MODEL_CONFIGS[MODEL_TYPE]["num_inference_steps"],
+        guidance_scale=0.0,
+        num_inference_steps=16,
         num_images_per_prompt=1,
         generator=generator
     ).images[0]
@@ -155,8 +119,8 @@ def image_to_image(opt):
         image=init_image,
         height=height,
         width=width,
-        guidance_scale=MODEL_CONFIGS[MODEL_TYPE]["guidance_scale"],
-        num_inference_steps=MODEL_CONFIGS[MODEL_TYPE]["num_inference_steps"],
+        guidance_scale=0.0,
+        num_inference_steps=16,
         generator=generator,
         strength=0.8
     ).images[0]
@@ -164,55 +128,7 @@ def image_to_image(opt):
     opt["seed"] = seed
     return image
 
-def set_ip_publico(porta):
-    def run_ssh():
-        global serveo_url
-        try:
-            process = subprocess.Popen(
-                ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
-
-            for line in process.stdout:
-                print("[serveo] " + line.strip())
-                match = re.search(r"https://[^\s]+", line)
-                if match:
-                    serveo_url = match.group()
-                    print(f"🔗 Serveo URL pública: {serveo_url}")
-                    # salva em arquivo
-                    with open("serveo_url.txt", "w") as f:
-                        f.write(serveo_url + "\n")
-        except Exception as e:
-            print(f"[serveo][erro] {e}")
-
-    threading.Thread(target=run_ssh, daemon=True).start()
-
-
-
-
-
-@app.on_event("startup")
-async def on_startup():
-    if not DEBUG_MODE:
-        carregar_modelos()
-    set_ip_publico(porta)
-
-@app.on_event("shutdown")
-def liberar_gpu():
-    global pipe
-    if pipe:
-        del pipe
-    gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
-    print("🧹 Memória CUDA liberada com sucesso.")
-
-porta = 7860
-
+# Rodar o servidor manualmente:
 if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=porta, reload=False)
-
-# http://localhost:7860/api?acao=text_to_image&prompt=uma%20gatinha%20futurista&resolution=1024%20×%201024%20(Square)&seed=42
-
+    import uvicorn
+    uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=True)
