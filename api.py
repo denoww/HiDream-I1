@@ -16,6 +16,9 @@ from hi_diffusers.schedulers.fm_solvers_unipc import FlowUniPCMultistepScheduler
 from hi_diffusers.schedulers.flash_flow_match import FlashFlowMatchEulerDiscreteScheduler
 from transformers import LlamaForCausalLM, PreTrainedTokenizerFast
 
+serveo_url = None
+
+
 app = FastAPI()
 
 # Modelos e config global
@@ -60,16 +63,15 @@ def load_models():
 
 pipe = load_models()
 
+from fastapi.responses import JSONResponse
+
 @app.get("/")
 def index():
-    return HTMLResponse("""
-    <html>
-    <head><title>HiDream API</title></head>
-    <body style='display:flex;align-items:center;justify-content:center;height:100vh;background:#000;color:#0f0;font-family:sans-serif;'>
-        <h1 style='font-size:48px;'>HIDREAM API LIGADO</h1>
-    </body>
-    </html>
-    """)
+    return JSONResponse({
+        "status": "HiDream API ligado",
+        "public_url": serveo_url or "Aguardando criação do túnel..."
+    })
+
 
 @app.api_route("/api", methods=["GET", "POST"])
 async def api(request: Request, file: Optional[UploadFile] = File(None)):
@@ -159,5 +161,30 @@ def image_to_image(opt):
     opt["seed"] = seed
     return image
 
+import subprocess
+import threading
+import uvicorn
+import re
+
+def start_serveo():
+    def run_ssh():
+        global serveo_url
+        process = subprocess.Popen(
+            ["ssh", "-o", "StrictHostKeyChecking=no", "-R", "80:localhost:7860", "serveo.net"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        for line in process.stdout:
+            print("[serveo] " + line.strip())
+            match = re.search(r"https://[^\s]+", line)
+            if match:
+                serveo_url = match.group()
+                print(f"🔗 Serveo URL pública: {serveo_url}")
+
+    threading.Thread(target=run_ssh, daemon=True).start()
+
 if __name__ == "__main__":
+    start_tunnel_serveo()
     uvicorn.run("api:app", host="0.0.0.0", port=7860, reload=False)
