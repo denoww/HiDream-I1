@@ -30,7 +30,7 @@ HF_TOKEN="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" ./install.sh
 ## 🔥 Iniciar o Servidor API
 
 ```bash
-cd ~/workspace/HiDream-I1; git pull ; ./start.sh
+~./workspace/HiDream-I1/start.sh
 ```
 
 ✅ Este processo:
