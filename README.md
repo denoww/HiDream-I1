@@ -2,10 +2,13 @@
 
 ## 🖥️ Requisitos da Máquina
 
-- Imagem: **Qualquer** com **Python 3.10**
-- GPU: **80GB** (Ex: A100 80GB)
-- Disco: **150GB de HD** mínimo
-- Porta liberada: **7860** (para acesso externo à API)
+- **Imagem**: Qualquer imagem que tenha **Python 3.10** instalado
+- **GPU**: **80GB VRAM** (exemplo: **NVIDIA A100 80GB**)
+- **Disco**: **150GB** de armazenamento (HD ou SSD)
+- **Porta liberada**: **7860** (para acesso externo à API via HTTP)
+- **Variáveis de ambiente**:
+  - `HUGGING_FACE_TOKEN="api_key_here"`
+
 
 ---
 
@@ -16,7 +19,7 @@ mkdir -p ~/workspace && cd ~/workspace
 git clone https://github.com/denoww/HiDream-I1.git
 cd ~/workspace/HiDream-I1
 chmod +x start.sh install.sh
-HF_TOKEN="AQUI_HUGGIN_FACE_TOKEN" ./install.sh
+HUGGIN_FACE_TOKEN="AQUI_HUGGIN_FACE_TOKEN" ./install.sh
 ```
 
 ✅ Este processo:
@@ -63,7 +66,7 @@ bash ~/workspace/HiDream-I1/start.sh
 ## 📜 Observações
 
 - Para usar o modelo **Llama-3.1-8B-Instruct**, é necessário aceitar a licença no HuggingFace.
-- Mantenha seu **HF_TOKEN** seguro e NUNCA commitado no GitHub.
+- Mantenha seu **HUGGIN_FACE_TOKEN** seguro e NUNCA commitado no GitHub.
 - Se der erro de memória, mate processos Python antes de reiniciar o servidor.
 
 ---
