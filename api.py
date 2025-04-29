@@ -81,7 +81,7 @@ def set_ip_publico(porta):
                     print(f"\n🔗 Serveo URL pública: {serveo_url}\n")
 
 
-                                        prompt = "uma gatinha futurista"
+                    prompt = "uma gatinha futurista"
                     resolution = "1024x1024"
                     seed = 42
 
