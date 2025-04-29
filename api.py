@@ -100,6 +100,7 @@ def prepare_generation(opt, generator_fn):
     steps = config["num_inference_steps"]
 
     print(f"\n🧠 Gerando imagem [{opt['acao']}] com {current_model} | Seed: {seed} | Res: {width}x{height}")
+    print(f"opt {opt}")
     start = time.time()
     image = generator_fn(opt.get("prompt", ""), height, width, guidance_scale, steps, generator)
     print(f"✅ Tempo: {time.time() - start:.2f}s\n")
