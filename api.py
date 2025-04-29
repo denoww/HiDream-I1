@@ -29,6 +29,21 @@ app = FastAPI()
 os.makedirs("outputs", exist_ok=True)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
+outputs_router = APIRouter()
+
+@outputs_router.get("/outputs", response_class=HTMLResponse)
+def listar_arquivos_html():
+    pasta = "outputs"
+    arquivos = sorted(os.listdir(pasta))
+    html = "<h2>🖼 Arquivos disponíveis em /outputs</h2><ul>"
+    for nome in arquivos:
+        caminho = f"/outputs/{nome}"
+        html += f'<li><a href="{caminho}" target="_blank">{nome}</a></li>'
+    html += "</ul>"
+    return html
+app.include_router(outputs_router)
+
+
 @app.on_event("startup")
 async def on_startup():
     global pipe, current_model
@@ -175,14 +190,17 @@ async def api_image_handler(request: Request, file: Optional[UploadFile], respon
         buf.seek(0)
         url = f"{request.base_url}outputs/output_{opt['seed']}.{opt['formato']}"
 
+        obj = {
+            "seed": opt["seed"],
+            "image_url": url,
+        }
+        print(f"{obj}")
+
         if response_format == "image":
             return StreamingResponse(buf, media_type=f"image/{opt['formato']}")
         else:
-            return JSONResponse({
-                "msg": "ok", "seed": opt["seed"],
-                "image_url": url,
-                "image_base64": base64.b64encode(buf.read()).decode("utf-8")
-            })
+            obj['image_base64'] = base64.b64encode(buf.read()).decode("utf-8")
+            return JSONResponse(obj)
     except Exception as e:
         return JSONResponse({"error": "Falha ao gerar imagem", "detalhe": str(e)}, status_code=500)
 
