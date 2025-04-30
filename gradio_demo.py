@@ -116,6 +116,14 @@ def generate_image(model_type, prompt, resolution, seed):
     
     # Parse resolution
     height, width = parse_resolution(resolution)
+
+    print(f"prompt: {prompt}")
+    print(f"resolution: {resolution}")
+    print(f"width: {width}")
+    print(f"height: {height}")
+    print(f"guidance_scale: {guidance_scale}")
+    print(f"num_inference_steps: {num_inference_steps}")
+    print(f"height: {height}")
     
     # Handle seed
     if seed == -1:
