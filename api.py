@@ -111,11 +111,11 @@ def on_shutdown():
         serveo_process.terminate()
         print("🔌 Serveo finalizado.")
 
-def print_urls(host):
+def print_urls():
 
-  print(f"\n🔗 Outputs: {host}/imagens\n")
+  print(f"\n🔗 Outputs: {public_url}/imagens\n")
 
-  print(f"\n🔗 URL Pública: {host}\n")
+  print(f"\n🔗 URL Pública: {public_url}\n")
 
 
   # Aguarda o modelo estar carregado
@@ -133,6 +133,8 @@ def print_urls(host):
           print(f"{tipo.upper()} | model={model}: {public_url}/{endpoint}?{query}\n")
 
 def set_ip_publico(porta):
+  global public_url
+
   public_url = f"https://{runpod_id}-{porta}.proxy.runpod.net"
   print_urls(public_url)
 
