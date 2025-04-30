@@ -137,7 +137,7 @@ def set_ip_publico(porta):
   global public_url
 
   public_url = f"https://{runpod_id}-{porta}.proxy.runpod.net"
-  print_urls(public_url)
+  print_urls()
 
 # def set_ip_publico(porta):
 #     def run_ssh():
@@ -158,9 +158,9 @@ def set_ip_publico(porta):
 #                 print("[serveo]", line.strip())
 #                 match = re.search(r"https://[^\s]+", line)
 #                 if match:
-#                     host = match.group()
+#                     public_url = match.group()
 
-#                     print_urls(host)
+#                     print_urls()
 #                     break  # para de escutar após pegar a URL
 #         except Exception as e:
 #             print("[serveo][erro]", e)
