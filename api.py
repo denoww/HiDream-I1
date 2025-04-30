@@ -70,10 +70,30 @@ app.include_router(outputs_router)
 @app.on_event("startup")
 async def on_startup():
     global pipe, current_model
-    print("\n🚀 Carregando modelo inicial (full)...")
-    pipe = load_hidream_pipeline("full")
     current_model = "full"
+    print(f"\n🚀 Carregando modelo inicial ({current_model})...")
+    pipe = load_hidream_pipeline(current_model)
+    aquecer_modelo(pipe, current_model)
     set_ip_publico(porta)
+
+def aquecer_modelo(modelo, nome=""):
+    try:
+        print(f"🔥 Aquecendo modelo {nome or ''}...")
+        prompt = "imagem de aquecimento"
+        _ = modelo(
+            prompt,
+            height=512,
+            width=512,
+            guidance_scale=5.0,
+            num_inference_steps=5,
+            num_images_per_prompt=1,
+            generator=torch.Generator("cuda").manual_seed(0)
+        )
+        torch.cuda.synchronize()
+        print(f"✅ Modelo {nome or ''} aquecido com sucesso!")
+    except Exception as e:
+        print(f"[⚠️ Erro ao aquecer modelo {nome or ''}] {e}")
+
 
 @app.on_event("shutdown")
 def on_shutdown():
