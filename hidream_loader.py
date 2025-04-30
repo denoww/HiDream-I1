@@ -11,6 +11,20 @@ LLAMA_MODEL_NAME = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
 # Configurações dos modelos
 MODEL_CONFIGS = {
+    # guidance_scale
+      # Controla o grau de aderência ao prompt textual.
+      # 0.0: livre, menos controle, mais criatividade (pode ignorar detalhes do prompt).
+      # 5.0: mais fiel ao prompt, mas pode gerar imagens menos naturais.
+      # Valores altos demais causam imagens forçadas ou artefatos.
+    # num_inference_steps
+      # Número de passos da inferência (quanto maior, mais qualidade).
+      # Exemplo:
+      # 16: rápido, qualidade reduzida.
+      # 28: médio.
+      # 50: lento, qualidade alta.
+    # shift
+      # Parâmetro específico do modelo HiDream relacionado a offset do tempo latente no espaço de difusão (pode afetar estilo ou consistência).
+      # 6.0 tende a gerar imagens mais suaves e experimentais, 3.0 mais definidas.
     "dev": {
         "path": f"{MODEL_PREFIX}/HiDream-I1-Dev",
         "guidance_scale": 0.0,
