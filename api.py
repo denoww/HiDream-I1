@@ -58,7 +58,6 @@ def listar_arquivos_html():
         html += f'''
             <li>
                 <a href="{caminho}" target="_blank">
-                    <img src="{caminho}" alt="{nome}">
                     {nome}
                 </a>
             </li>
@@ -109,6 +108,8 @@ def set_ip_publico(porta):
                 if match:
                     serveo_url = match.group()
                     print(f"\n🔗 URL Pública: {serveo_url}\n")
+
+                    print(f"\n🔗 outputsp: {serveo_url}/outputs\n")
 
                     # Aguarda o modelo estar carregado
                     while pipe is None:
