@@ -108,7 +108,7 @@ def set_ip_publico(porta):
                 if match:
                     serveo_url = match.group()
 
-                    print(f"\n🔗 outputsp: {serveo_url}/outputs\n")
+                    print(f"\n🔗 Outputs: {serveo_url}/outputs\n")
 
                     print(f"\n🔗 URL Pública: {serveo_url}\n")
 
