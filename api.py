@@ -107,9 +107,11 @@ def set_ip_publico(porta):
                 match = re.search(r"https://[^\s]+", line)
                 if match:
                     serveo_url = match.group()
-                    print(f"\n🔗 URL Pública: {serveo_url}\n")
 
                     print(f"\n🔗 outputsp: {serveo_url}/outputs\n")
+
+                    print(f"\n🔗 URL Pública: {serveo_url}\n")
+
 
                     # Aguarda o modelo estar carregado
                     while pipe is None:
