@@ -99,7 +99,8 @@ def aquecer_modelo(modelo, nome=""):
 
 @app.on_event("shutdown")
 def on_shutdown():
-    global pipe, serveo_process
+    # global pipe, serveo_process
+    global pipe
     if pipe:
         del pipe
     gc.collect()
@@ -107,9 +108,9 @@ def on_shutdown():
     torch.cuda.ipc_collect()
     print("🧹 Memória CUDA liberada com sucesso.")
 
-    if serveo_process and serveo_process.poll() is None:
-        serveo_process.terminate()
-        print("🔌 Serveo finalizado.")
+    # if serveo_process and serveo_process.poll() is None:
+    #     serveo_process.terminate()
+    #     print("🔌 Serveo finalizado.")
 
 def print_urls():
 
