@@ -22,7 +22,7 @@ from hidream_loader import load_hidream_pipeline, MODEL_CONFIGS
 pipe = None
 current_model = None
 serveo_url = None
-porta = 8888
+porta = 7860
 
 # Inicializa app
 app = FastAPI()
