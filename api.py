@@ -28,10 +28,10 @@ porta = 7860
 app = FastAPI()
 
 os.makedirs("outputs", exist_ok=True)
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+app.mount("/imagens", StaticFiles(directory="outputs"), name="outputs")
 
 outputs_router = APIRouter()
-@outputs_router.get("/outputs", response_class=HTMLResponse)
+@outputs_router.get("/imagens", response_class=HTMLResponse)
 def listar_arquivos_html():
     pasta = "outputs"
     arquivos = sorted(os.listdir(pasta))
@@ -50,11 +50,11 @@ def listar_arquivos_html():
         </style>
     </head>
     <body>
-        <h2>🖼 Arquivos disponíveis em /outputs</h2>
+        <h2>🖼 Arquivos disponíveis em /imagens</h2>
         <ul>
     """
     for nome in arquivos:
-        caminho = f"/outputs/{nome}"
+        caminho = f"/imagens/{nome}"
         html += f'''
             <li>
                 <a href="{caminho}" target="_blank">
@@ -128,7 +128,7 @@ def set_ip_publico(porta):
                 if match:
                     serveo_url = match.group()
 
-                    print(f"\n🔗 Outputs: {serveo_url}/outputs\n")
+                    print(f"\n🔗 Outputs: {serveo_url}/imagens\n")
 
                     print(f"\n🔗 URL Pública: {serveo_url}\n")
 
