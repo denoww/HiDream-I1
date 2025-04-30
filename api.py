@@ -21,8 +21,10 @@ from hidream_loader import load_hidream_pipeline, MODEL_CONFIGS
 # Estado global
 pipe = None
 current_model = None
-serveo_url = None
+public_url = None
 porta = 7860
+runpod_id = os.getenv("RUNPOD_POD_ID")
+
 
 # Inicializa app
 app = FastAPI()
@@ -109,48 +111,58 @@ def on_shutdown():
         serveo_process.terminate()
         print("🔌 Serveo finalizado.")
 
+def print_urls(host):
+
+  print(f"\n🔗 Outputs: {host}/imagens\n")
+
+  print(f"\n🔗 URL Pública: {host}\n")
+
+
+  # Aguarda o modelo estar carregado
+  while pipe is None:
+      print("⏳ Aguardando inicialização do modelo...")
+      time.sleep(1)
+
+  prompt = "uma gatinha futurista"
+  resolution = "1024x1024"
+  seed = 42
+  for model in ["fast", "full"]:
+      for tipo in ["navegador", "api"]:
+          endpoint = "api_image" if tipo == "navegador" else "api_image.json"
+          query = f"acao=text_to_image&model={model}&resolution={resolution}&seed={seed}&prompt={prompt.replace(' ', '%20')}"
+          print(f"{tipo.upper()} | model={model}: {public_url}/{endpoint}?{query}\n")
+
 def set_ip_publico(porta):
-    def run_ssh():
-        global serveo_url, serveo_process, pipe
-        try:
-            print(f"🌐 Criando túnel público na porta {porta} via serveo.net...")
-            process = subprocess.Popen(
-                ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True
-            )
-            serveo_process = process
+  public_url = f"https://{runpod_id}-{porta}.proxy.runpod.net"
+  print_urls(public_url)
 
-            for line in process.stdout:
-                print("[serveo]", line.strip())
-                match = re.search(r"https://[^\s]+", line)
-                if match:
-                    serveo_url = match.group()
-
-                    print(f"\n🔗 Outputs: {serveo_url}/imagens\n")
-
-                    print(f"\n🔗 URL Pública: {serveo_url}\n")
+# def set_ip_publico(porta):
+#     def run_ssh():
 
 
-                    # Aguarda o modelo estar carregado
-                    while pipe is None:
-                        print("⏳ Aguardando inicialização do modelo...")
-                        time.sleep(1)
+#         global public_url, serveo_process, pipe
+#         try:
+#             print(f"🌐 Criando túnel público na porta {porta} via serveo.net...")
+#             process = subprocess.Popen(
+#                 ["ssh", "-o", "StrictHostKeyChecking=no", "-R", f"80:localhost:{porta}", "serveo.net"],
+#                 stdout=subprocess.PIPE,
+#                 stderr=subprocess.STDOUT,
+#                 text=True
+#             )
+#             serveo_process = process
 
-                    prompt = "uma gatinha futurista"
-                    resolution = "1024x1024"
-                    seed = 42
-                    for model in ["fast", "full"]:
-                        for tipo in ["navegador", "api"]:
-                            endpoint = "api_image" if tipo == "navegador" else "api_image.json"
-                            query = f"acao=text_to_image&model={model}&resolution={resolution}&seed={seed}&prompt={prompt.replace(' ', '%20')}"
-                            print(f"{tipo.upper()} | model={model}: {serveo_url}/{endpoint}?{query}\n")
-                    break  # para de escutar após pegar a URL
-        except Exception as e:
-            print("[serveo][erro]", e)
+#             for line in process.stdout:
+#                 print("[serveo]", line.strip())
+#                 match = re.search(r"https://[^\s]+", line)
+#                 if match:
+#                     host = match.group()
 
-    threading.Thread(target=run_ssh, daemon=True).start()
+#                     print_urls(host)
+#                     break  # para de escutar após pegar a URL
+#         except Exception as e:
+#             print("[serveo][erro]", e)
+
+#     threading.Thread(target=run_ssh, daemon=True).start()
 
 def parse_resolution(res):
     parts = res.replace(" ", "").replace("×", "x").split("x")
@@ -264,7 +276,7 @@ def index():
     return JSONResponse({
         "App": "HiDream API ligado!",
         "status": "ok",
-        "public_url": serveo_url or "Aguardando túnel..."
+        "public_url": public_url or "Aguardando túnel..."
     })
 
 
