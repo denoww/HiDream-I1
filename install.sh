@@ -4,8 +4,8 @@
 
 
 # Token HF (edite se necessário)
-if [ -z "$HUGGING_FACE_TOKEN" ]; then
-  echo "❌ Variável HUGGING_FACE_TOKEN não definida. Use: HUGGING_FACE_TOKEN=seu_token ./start.sh"
+if [ -z "$HF_TOKEN" ]; then
+  echo "❌ Variável HF_TOKEN não definida. Use: HF_TOKEN=seu_token ./start.sh"
   exit 1
 fi
 
@@ -17,7 +17,7 @@ set -e
 pip install huggingface_hub
 
 echo "\n🔐 Logando no Hugging Face..."
-huggingface-cli login --token "$HUGGING_FACE_TOKEN"
+huggingface-cli login --token "$HF_TOKEN"
 
 
 

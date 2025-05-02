@@ -14,7 +14,7 @@ MODEL_CONFIGS = {
     # guidance_scale
       # Controla o grau de aderência ao prompt textual.
       # 0.0: livre, menos controle, mais criatividade (pode ignorar detalhes do prompt).
-      # 5.0: mais fiel ao prompt, mas pode gerar imagens menos naturais.
+      # 20.0: mais fiel ao prompt, mas pode gerar imagens menos naturais.
       # Valores altos demais causam imagens forçadas ou artefatos.
     # num_inference_steps
       # Número de passos da inferência (quanto maior, mais qualidade).
