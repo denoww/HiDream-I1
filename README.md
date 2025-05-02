@@ -7,7 +7,7 @@
 - **Disco**: **150GB** de armazenamento (HD ou SSD)
 - **Porta liberada**: **7860** (para acesso externo à API via HTTP)
 - **Variáveis de ambiente**:
-  - `HUGGING_FACE_TOKEN="api_key_here"`
+  - `HF_TOKEN="api_key_here"`
 
 
 ---
